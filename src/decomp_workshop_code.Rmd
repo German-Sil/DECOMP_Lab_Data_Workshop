@@ -1,0 +1,189 @@
+---
+title: "Data Sci Boot Camp"
+author: "Germán Silva"
+date: "7/13/2022"
+output: html_document
+---
+
+# Overview
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+
+# significance tests and data exploration
+library(tidyverse)
+library(janitor)
+library(here)
+library(kableExtra)
+library(ggbeeswarm)
+library(broom)
+library(ggfortify)
+```
+
+# Reading and Summarizing the data:
+
+## Reading and cleaning data
+
+### Bulk Density
+```{r}
+# pipe operator: Windows (ctrl+shift+m), MAC (cmd+shift+m)
+
+soils <- read_csv(here("data", "tutorial_data.csv")) %>% # reads in the csv so we can work with it in the code
+  clean_names() %>% 
+  drop_na() %>%  # drops all rows with an NA 
+  rename(ec = electro_cond_m_s_per_cm) %>% 
+  mutate(water_content = ((wet_mass_g - dried_mass_g)/wet_mass_g) * 100)
+
+
+
+soils_sum <- soils %>% # calls the averaged data
+  group_by(transect) %>% #groups by zone only
+  summarize(min = min(ec), # returns minimum value
+            max = max(ec), # returns maximum value
+            sd = sd(ec), # returns group's standard deviation
+            mean = mean(ec), # returns group's mean
+            sample_size = n()) # returns sample size
+
+kable(soils_sum, # starts the creation of a table with the data from the object called
+      col.names = c("Zone",
+                    "Min. EC (mS/cm)",
+                    "Max. EC (mS/cm)",
+                    "Standard Deviation (mS/cm)",
+                    "Mean EC (mS/cm)",
+                    "Sample Size")) %>%  # renames all the column names to professional looking titles
+  kable_classic(full_width = FALSE) # themes the table
+
+
+```
+
+
+## Visualizing
+
+### Bulk Density
+```{r}
+ggplot(soils, aes(x = transect, y = ec, color = transect))+ 
+  geom_beeswarm(aes(fill=transect), shape= 21, color = "black")+
+  geom_boxplot(aes(fill=transect),
+               color = "black",
+               alpha=0.45,
+               width = 0.2,
+               outlier.color = NA)
+```
+
+
+```{r}
+ggplot(soils, aes(x = elevation, y = ec, color = transect)) +#ggplot of soils/dem data
+  geom_point()+#geometry of the plot
+  labs(x = "Elevation (m)",#labels
+       y = "Electrical conductivity (mS/cm)")
+
+ggplot(soils, aes(x = elevation, y = ec, color = transect)) +#ggplot of soils/dem data
+  geom_point()+#geometry of the plot
+  facet_wrap(~transect)+
+  labs(x = "Elevation (m)",#labels
+       y = "Electrical conductivity (mS/cm)")
+```
+```{r}
+ggplot(soils, aes(x = water_content, y = ec, color = transect)) +#ggplot of soils/dem data
+  geom_point()+#geometry of the plot
+  labs(x = "Elevation (m)",#labels
+       y = "Electrical conductivity (mS/cm)")
+
+ggplot(soils, aes(x = water_content, y = ec, color = transect)) +#ggplot of soils/dem data
+  geom_point()+#geometry of the plot
+  facet_wrap(~transect)+
+  labs(x = "Water Content (%)",#labels
+       y = "Electrical conductivity (mS/cm)")
+```
+
+# Hypothesis testing
+
+Questions:
+
+- Is there a significant difference in mean soil bulk density between the two zones? Is there a significant difference between longest branch length in the two zones?
+- Does the data fit the assumptions of parametric significance testing?
+
+## Exploring the data
+
+### Soil Bulk Density
+
+Histogram:
+```{r}
+ggplot(data = soils, aes(x = ec))+ # starts creation of graph, aes() refers to aesthetics and decides how things are displayed from the variables
+  geom_histogram()+ # turns graph into a histogram
+  facet_wrap(~location) # makes two panels based on Zone grouping
+
+ggplot(data = soils, aes(x = ec))+ # starts creation of graph, aes() refers to aesthetics and decides how things are displayed from the variables
+  geom_histogram()+ # turns graph into a histogram
+  facet_wrap(~transect) # makes two panels based on Zone grouping
+```
+
+
+QQ plot:
+```{r}
+ggplot(soils, aes(sample = ec))+ # starts graph with mean bulk density as the sample/graphing data
+  geom_qq()+ # makes a QQ plot, a exploratory/diagnostic plot
+  facet_wrap(~location) # panels by Zone Grouping
+
+ggplot(soils, aes(sample = ec))+ # starts graph with mean bulk density as the sample/graphing data
+  geom_qq()+ # makes a QQ plot, a exploratory/diagnostic plot
+  facet_wrap(~transect) # panels by Zone Grouping
+```
+
+## T-test
+
+### Bulk Density
+
+```{r}
+copr <- soils %>% 
+  filter(location == "COPR")
+
+ncos <- soils %>% 
+  filter(location == "NCOS")
+
+cohen_d <- effsize::cohen.d(copr$ec, ncos$ec)
+
+cohen_d
+
+t_test <- t.test(copr$ec, ncos$ec)
+
+t_test
+```
+
+# ANOVA
+
+```{r}
+soils$transect <- ordered(soils$transect,
+                          levels = c('COPR_1_NS', 'COPR_2_EW', 'COPR_2_NS', 'NCOS_1_NS', 'NCOS_2_EW', 'NCOS_2_NS'))
+
+soil_transect <- aov(ec ~ transect, data = soils)
+
+summary(soil_transect)
+```
+
+# OLS and Multiple Linear Regression
+
+```{r}
+lm <- lm(ec ~ elevation,
+   data = soils)
+
+cor(x = soils$elevation, y = soils$ec)
+
+summary(lm)
+
+ggplot(soils, aes(x = elevation, y = ec)) +#ggplot of soils/dem data
+  geom_point()+#geometry of the plot
+  geom_smooth(method = 'lm')+
+  labs(x = "Elevation (m)",#labels
+       y = "Electrical conductivity (mS/cm)")
+```  
+  
+```{r}
+mlr <- glm(ec ~ location + water_content + landcover + elevation,
+    data = soils)
+
+summary(mlr)
+
+```
+
+
