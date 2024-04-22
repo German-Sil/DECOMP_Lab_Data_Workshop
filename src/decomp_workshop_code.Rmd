@@ -5,6 +5,16 @@ date: "7/13/2022"
 output: html_document
 ---
 
+Required packages: Copy and paste in console as necessary
+
+install.packages("tidyverse")
+install.packages("here")
+install.packages("janitor")
+install.packages("kableExtra")
+install.packages("ggbeeswarm")
+install.packages("broom")
+install.packages("ggfortify")
+
 # Overview
 
 ```{r setup, include=FALSE}
