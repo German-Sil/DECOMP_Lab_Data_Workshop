@@ -110,12 +110,12 @@ ggplot(soils, aes(x = water_content, y = ec, color = transect)) +#ggplot of soil
 
 Questions:
 
-- Is there a significant difference in mean soil bulk density between the two zones? Is there a significant difference between longest branch length in the two zones?
+- Is there a significant difference in mean soil electrical conductivity across the transects? 
 - Does the data fit the assumptions of parametric significance testing?
 
 ## Exploring the data
 
-### Soil Bulk Density
+### Soil Electrical Conductivity
 
 Histogram:
 ```{r}
